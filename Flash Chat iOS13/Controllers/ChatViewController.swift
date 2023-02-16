@@ -7,19 +7,62 @@
 //
 
 import UIKit
+import FirebaseAuth
+import FirebaseFirestore
 
 class ChatViewController: UIViewController {
 
     @IBOutlet weak var tableView: UITableView!
     @IBOutlet weak var messageTextfield: UITextField!
+    let db = Firestore.firestore()
+    
+    var messages: [Message] = [
+        Message(sender: "2@3.com", body: "Hey"),
+        Message(sender: "2@4.com", body: "What's up"),
+        Message(sender: "2@3.com", body: "Life lol")
+    ]
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
+//        tableView.dataSource = self
+        title = K.appName
+        navigationItem.hidesBackButton = true
+        tableView.register(UINib(nibName: K.cellNibName, bundle: nil), forCellReuseIdentifier: K.cellIdentifier)
     }
     
     @IBAction func sendPressed(_ sender: UIButton) {
+        if let messageBody = messageTextfield.text, let messageSender = Auth.auth().currentUser?.email{
+            db.collection(<#T##collectionPath: String##String#>)
+        }
+    }
+    
+    
+    @IBAction func logOutPressed(_ sender: UIBarButtonItem) {
+        let firebaseAuth = Auth.auth()
+       do {
+         try firebaseAuth.signOut()
+           navigationController?.popToRootViewController(animated: true)
+       } catch let signOutError as NSError {
+         print("Error signing out: %@", signOutError)
+       }
+         
     }
     
 
+}
+extension ChatViewController: UITableViewDataSource{
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return messages.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: K.cellIdentifier, for: indexPath)as! MessageCell
+        cell.textLabel?.text = messages[indexPath.row].body
+        return cell
+    }
+    
+    
+    
 }
