@@ -17,9 +17,7 @@ class ChatViewController: UIViewController {
     let db = Firestore.firestore()
     
     var messages: [Message] = [
-        Message(sender: "2@3.com", body: "Hey"),
-        Message(sender: "2@4.com", body: "What's up"),
-        Message(sender: "2@3.com", body: "Life lol")
+       
     ]
     
     
@@ -29,11 +27,49 @@ class ChatViewController: UIViewController {
         title = K.appName
         navigationItem.hidesBackButton = true
         tableView.register(UINib(nibName: K.cellNibName, bundle: nil), forCellReuseIdentifier: K.cellIdentifier)
+        loadMessage()
     }
+    
+    func loadMessage() {
+        
+        
+        db.collection(K.FStore.collectionName)
+            .order(by:K.FStore.dateField )
+            .addSnapshotListener {
+            (querySnapshot, error )in
+            self.messages = []
+            if let e = error {
+                print("There was an issue retrieving data from Firestore. \(e)")
+            }else {
+                    if let snapshotDocuments = querySnapshot?.documents{
+                        for doc in snapshotDocuments{
+                            let data = doc.data()
+                            if let messageSender = data[K.FStore.senderField] as? String, let messageBody = data[K.FStore.bodyField] as? String{
+                                let newMessage = Message(sender: messageSender, body: messageBody)
+                                self.messages.append(newMessage)
+                                DispatchQueue.main.async {
+                                    self.tableView.reloadData()
+                                }
+                                
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    
     
     @IBAction func sendPressed(_ sender: UIButton) {
         if let messageBody = messageTextfield.text, let messageSender = Auth.auth().currentUser?.email{
-            db.collection(<#T##collectionPath: String##String#>)
+            db.collection(K.FStore.collectionName).addDocument(data:[K.FStore.senderField:messageSender
+                ,K.FStore.bodyField:messageBody,
+                 K.FStore.dateField:Date().timeIntervalSince1970]) { (error) in
+                if let e = error {
+                    print("Issue saving data to firestore \(e)")
+                }else {
+                    print("Data was successfully stored.")
+                }
+            }
         }
     }
     
@@ -58,8 +94,16 @@ extension ChatViewController: UITableViewDataSource{
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let message = messages[indexPath.row]
+        
         let cell = tableView.dequeueReusableCell(withIdentifier: K.cellIdentifier, for: indexPath)as! MessageCell
-        cell.textLabel?.text = messages[indexPath.row].body
+        cell.textLabel?.text = message.body
+        
+        if message.sender == Auth.auth().currentUser?.email{
+            cell.leftImageView.isHidden = true
+            cell.rightImageView.isHidden = false
+            cell.messageBubble.backgroundColor = UIColor(named: K.BrandColors.lightPurple)
+        }
         return cell
     }
     
